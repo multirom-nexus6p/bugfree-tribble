@@ -1,19 +1,19 @@
 #!/usr/bin/python
-import sys, string, os, json, hashlib, time, re, subprocess, copy, gnupg, getpass, urllib2
+import sys, string, os, json, hashlib, time, re, subprocess, copy, getpass, urllib2
 from os.path import isfile, join
 from datetime import datetime
 
 MANIFEST_NAME = "manifest.json"
 RSYNC_ADDR = "tasemnice:/usr/share/nginx/www/multirom/"
-BASE_ADDR = "http://tasemnice.eu/multirom/"
-MULTIROM_DIR = "/home/tassadar/nexus/multirom/"
+BASE_ADDR = "https://multirom-nexus6p.github.io/"
+MULTIROM_DIR = "./"
 CONFIG_JSON = MULTIROM_DIR + "config.json"
 RELEASE_DIR = "release"
 
-REGEXP_MULTIROM = re.compile('^multirom-[0-9]{8}-v([0-9]{1,3})([a-z]?)-[a-z]*\.zip$')
-REGEXP_RECOVERY = re.compile('^TWRP_multirom_([a-z]*)_([0-9]{8})(-[0-9]{2})?\.img$')
+REGEXP_MULTIROM = re.compile('^multirom-[0-9]{8}-v([0-9]{1,3})([a-z]?)-[a-z]*.*\.zip$')
+REGEXP_RECOVERY = re.compile('^mr-twrp-recovery-([0-9]{8}).*.img$')
 
-opt_verbose = False
+opt_verbose = True
 opt_dry_run = False
 
 # config.json example:
@@ -100,25 +100,7 @@ class Utils:
 
     @staticmethod
     def sign_file(passphrase, path, destination = None):
-        key_path = join(MULTIROM_DIR, "gpg")
-
-        if not os.path.isdir(key_path):
-            raise IndexError("GPG dir doesn't exist '%s'." % key_path)
-
-        if not destination:
-            destination = "%s.asc" % path
-
-        if os.path.exists(destination):
-            raise Exception("destination already exists.")
-
-        gpg = gnupg.GPG(gnupghome=key_path)
-        gpg.encoding = 'utf-8'
-        with open(path, "rb") as f:
-            signature = gpg.sign_file(f, passphrase=passphrase, detach=True)
-        if not signature:
-            raise Exception("Failed to sign file %s, probably bad passphrase!" % path);
-        with open(destination, "w") as f:
-            f.write(str(signature))
+        raise Error("Signing not implemented")
 
 class GeneratorParams:
     def __init__(self):
@@ -178,18 +160,19 @@ def get_recovery_file(pref_ver, device_name, path, symlinks):
             continue
 
         match = REGEXP_RECOVERY.match(f)
-        if not match or match.group(1) != device_name:
+        if not match:# or match.group(1) != device_name:
             continue
 
-        info = Utils.get_bbootimg_info(join(path, f))
-        if not info["boot_img_hdr"]["name"]:
-            continue
+        #info = Utils.get_bbootimg_info(join(path, f))
+        #if not info["boot_img_hdr"]["name"]:
+        #    continue
 
-        date = datetime.strptime(info["boot_img_hdr"]["name"], "mrom%Y%m%d-%M")
-        if ((pref_ver and info["boot_img_hdr"]["name"] == pref_ver) or
-            (not pref_ver and date > ver_date)):
+        date = datetime.strptime(match.group(1), "%m%d%Y")#datetime.strptime(info["boot_img_hdr"]["name"], "mrom%Y%m%d-%M")
+        #if ((pref_ver and info["boot_img_hdr"]["name"] == pref_ver) or
+        #    (not pref_ver and date > ver_date)):
+        if date > ver_date:
             ver_date = date
-            ver_str = info["boot_img_hdr"]["name"]
+            ver_str = "mrom" + date.strftime("%Y%m%d") + "-00" #info["boot_img_hdr"]["name"]
             filename = f
             size = os.path.getsize(join(path, f))
 
@@ -331,10 +314,10 @@ def generate(params):
         else:
             json.dump(manifest, f)
         f.write('\n')
-    Utils.sign_file(params.gpg_passphrase, man_path)
+    #Utils.sign_file(params.gpg_passphrase, man_path)
 
     # upload gpg public keyring
-    os.symlink(join("..", "gpg", "pubring.gpg"), join(MULTIROM_DIR, RELEASE_DIR, "keyring.gpg"))
+    #os.symlink(join("..", "gpg", "pubring.gpg"), join(MULTIROM_DIR, RELEASE_DIR, "keyring.gpg"))
 
     # create symlinks
     for dev in symlinks.keys():
@@ -503,8 +486,8 @@ def main(argc, argv):
             return 1
 
         if gen_manifest:
-            if not params.gpg_passphrase and not opt_dry_run:
-                params.gpg_passphrase = getpass.getpass(prompt='Enter GPG key passphrase: ')
+            #if not params.gpg_passphrase and not opt_dry_run:
+            #    params.gpg_passphrase = getpass.getpass(prompt='Enter GPG key passphrase: ')
             generate(params)
 
         if upload_files:
