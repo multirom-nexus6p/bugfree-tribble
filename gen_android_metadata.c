@@ -10,7 +10,7 @@
 
 
 #include <sys/types.h>
-#include <attr/xattr.h>
+#include <linux/xattr.h>
 #include <linux/capability.h>
 #include <linux/xattr.h>
 
