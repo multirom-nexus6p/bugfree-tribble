@@ -167,7 +167,7 @@ def get_recovery_file(pref_ver, device_name, path, symlinks):
         #if not info["boot_img_hdr"]["name"]:
         #    continue
 
-        date = datetime.strptime(match.group(1), "%m%d%Y")#datetime.strptime(info["boot_img_hdr"]["name"], "mrom%Y%m%d-%M")
+        date = datetime.strptime(match.group(1), "%Y%m%d")#datetime.strptime(info["boot_img_hdr"]["name"], "mrom%Y%m%d-%M")
         #if ((pref_ver and info["boot_img_hdr"]["name"] == pref_ver) or
         #    (not pref_ver and date > ver_date)):
         if date > ver_date:
